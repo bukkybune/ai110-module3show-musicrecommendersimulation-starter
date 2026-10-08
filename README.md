@@ -25,6 +25,7 @@ Real-world platforms like Spotify and YouTube predict what you'll love by combin
 - `energy`: 0–1, scored by closeness to the user's target
 - `acousticness`: 0–1, rewarded high or low depending on the user's preference
 - `valence`: 0–1 (musical positivity), optional, scored by closeness to the user's target
+- `popularity`, `release_decade`, `mood_tags`, `instrumentalness`, `language`: advanced features, each optional (see [Advanced Features and Scoring Modes](#advanced-features-and-scoring-modes))
 - *(Loaded but not scored yet: `tempo_bpm`, `danceability`. `title`, `artist`, and `id` are used for display and tie-breaking.)*
 
 **`UserProfile` features**
@@ -33,8 +34,9 @@ Real-world platforms like Spotify and YouTube predict what you'll love by combin
 - `target_energy`: the ideal energy level, from 0 to 1
 - `likes_acoustic`: whether the user prefers acoustic (`True`) or produced/electronic (`False`) sound
 - `target_valence`: optional, the ideal positivity level, from 0 to 1
+- `favorite_decade`, `mood_tags`, `target_popularity`, `likes_instrumental`, `language`: optional preferences for the advanced features
 
-The command-line runner (`src/main.py`) passes the same preferences as a dictionary with the keys `genre`, `mood`, and `energy`, plus the optional `likes_acoustic` and `valence`.
+The command-line runner (`src/main.py`) passes the same preferences as a dictionary with the keys `genre`, `mood`, and `energy`, plus the optional `likes_acoustic`, `valence`, `decade`, `mood_tags`, `popularity`, `likes_instrumental`, and `language`. Weights depend on the chosen scoring mode; the recipe below uses the default `balanced` mode.
 
 ### Algorithm Recipe
 
@@ -121,6 +123,7 @@ Output of `python -m src.main` for the default profile (`genre=pop, mood=happy, 
 ```
 Loading songs from data/songs.csv...
 Loaded songs: 20
+Scoring mode: balanced (Default weights: genre first, then mood and energy)
 
 High-Energy Pop: genre=pop, mood=happy, energy=0.8
 ============================================================
@@ -172,11 +175,12 @@ High-Energy Pop: genre=pop, mood=happy, energy=0.8
 | Capitalized Pop | Pop, Happy, energy 0.8 | Same as the default but with capital letters |
 | Out-of-Range Energy | edm, euphoric, energy 1.5 | An energy target outside the 0–1 scale |
 
-Full output of `python -m src.main`:
+Output of `python -m src.main` for these 7 profiles. The command also prints an 8th profile, Throwback Explorer, shown under [Advanced Features and Scoring Modes](#advanced-features-and-scoring-modes).
 
 ```
 Loading songs from data/songs.csv...
 Loaded songs: 20
+Scoring mode: balanced (Default weights: genre first, then mood and energy)
 
 High-Energy Pop: genre=pop, mood=happy, energy=0.8
 ============================================================
@@ -417,7 +421,7 @@ Out-of-Range Energy: genre=edm, mood=euphoric, energy=1.5
 
 ### Experiment: weight shift (energy ×2, genre ×½)
 
-I temporarily changed `GENRE_WEIGHT` from 2.0 to 1.0 and `ENERGY_WEIGHT` from 1.5 to 3.0, re-ran all profiles, then reverted. **Math check:** for any energy target between 0 and 1 the energy term stays between 0 and 3, so no score goes negative. The maximum score for a genre + mood + energy profile rises from 5.0 to 5.5, and since every song is scored the same way the ranking is still a fair comparison.
+I temporarily changed `GENRE_WEIGHT` from 2.0 to 1.0 and `ENERGY_WEIGHT` from 1.5 to 3.0, re-ran all profiles, then reverted. These exact weights are now built in as the `energy_focused` scoring mode, so `python -m src.main --mode energy_focused` reproduces this experiment. **Math check:** for any energy target between 0 and 1 the energy term stays between 0 and 3, so no score goes negative. The maximum score for a genre + mood + energy profile rises from 5.0 to 5.5, and since every song is scored the same way the ranking is still a fair comparison.
 
 | Profile | Original top 5 (genre 2.0, energy 1.5) | Shifted top 5 (genre 1.0, energy 3.0) |
 |---|---|---|
@@ -433,6 +437,108 @@ I temporarily changed `GENRE_WEIGHT` from 2.0 to 1.0 and `ENERGY_WEIGHT` from 1.
 - *Unchanged:* Hollow Pines still beats every energetic song for the Sad but Energetic profile, because genre + mood together (2.5) still outweigh a perfect energy match. For profiles ranked by energy alone (Capitalized Pop, Out-of-Range), the order stays the same and only the scores double.
 
 I kept the original weights: the shift fixed some mood problems but made the energy bubble worse.
+
+---
+
+## Advanced Features and Scoring Modes
+
+### Challenge 1: advanced song features
+
+`data/songs.csv` has 5 new columns. Each one has an optional user preference, and the score only uses it when the user sets that preference, so the original profiles score exactly as before.
+
+| Song column | Values | User preference key | Points (balanced mode) |
+|---|---|---|---|
+| `popularity` | 0–100 | `popularity` (target) | up to 0.5, for closeness to the target |
+| `release_decade` | 1960–2020 | `decade` | 1.0 for the same decade, 0.5 for a neighbouring one |
+| `mood_tags` | 3 detailed tags per song, e.g. `nostalgic\|nocturnal\|dreamy` | `mood_tags` (list) | 0.5 for one shared tag, 1.0 for two or more |
+| `instrumentalness` | 0–1 | `likes_instrumental` (True/False) | up to 0.5 |
+| `language` | english, spanish, none | `language` | 0.5 for a match |
+
+The new **Throwback Explorer** profile uses them (balanced mode):
+
+```
+Throwback Explorer: genre=synthwave, mood=nostalgic, energy=0.6, decade=1980, mood_tags=['nostalgic', 'dreamy'], popularity=50, likes_instrumental=True
+============================================================
+1. Night Drive Loop by Neon Echo  [synthwave / moody]
+   Score: 6.04
+   Why:
+     - genre match: synthwave (+2.00)
+     - energy 0.75 vs target 0.60 (+1.27)
+     - from the 1980s (+1.00)
+     - mood tags: nostalgic, dreamy (+1.00)
+     - popularity 66 vs target 50 (+0.42)
+     - instrumental fit, instrumentalness 0.70 (+0.35)
+
+2. Dusty Backroads by Cedar & Pine  [country / nostalgic]
+   Score: 4.46
+   Why:
+     - mood match: nostalgic (+1.50)
+     - energy 0.55 vs target 0.60 (+1.43)
+     - 1990s is next to the 1980s (+0.50)
+     - mood tags: nostalgic (+0.50)
+     - popularity 52 vs target 50 (+0.49)
+     - instrumental fit, instrumentalness 0.08 (+0.04)
+
+3. Coffee Shop Stories by Slow Stereo  [jazz / relaxed]
+   Score: 2.84
+   Why:
+     - energy 0.37 vs target 0.60 (+1.16)
+     - 1990s is next to the 1980s (+0.50)
+     - mood tags: nostalgic (+0.50)
+     - popularity 47 vs target 50 (+0.48)
+     - instrumental fit, instrumentalness 0.40 (+0.20)
+
+4. Island Breeze by Kaya Roots  [reggae / uplifting]
+   Score: 2.51
+   Why:
+     - energy 0.60 vs target 0.60 (+1.50)
+     - 1970s is next to the 1980s (+0.50)
+     - popularity 57 vs target 50 (+0.46)
+     - instrumental fit, instrumentalness 0.10 (+0.05)
+
+5. Iron Tempest by Graveforge  [metal / angry]
+   Score: 2.50
+   Why:
+     - energy 0.97 vs target 0.60 (+0.95)
+     - from the 1980s (+1.00)
+     - popularity 45 vs target 50 (+0.47)
+     - instrumental fit, instrumentalness 0.15 (+0.07)
+```
+
+The new features do real work here. Night Drive Loop wins on genre, decade, *and* both mood tags. Iron Tempest reaches the top 5 almost entirely because it's from the 1980s, which shows a single new bonus can pull in an otherwise unrelated song.
+
+### Challenge 2: scoring modes
+
+Choose a ranking strategy with `--mode`:
+
+```bash
+python -m src.main --mode balanced        # default
+python -m src.main --mode genre_first
+python -m src.main --mode mood_first
+python -m src.main --mode energy_focused
+```
+
+| Mode | Changes from balanced | Idea |
+|---|---|---|
+| `balanced` | (none) | Genre 2.0, mood 1.5, energy 1.5 |
+| `genre_first` | genre 4.0, mood 1.0, energy 1.0 | Stay inside the user's genre |
+| `mood_first` | genre 1.0, mood 3.0, mood tags 2.0, valence 1.5 | Match the feeling, whatever the genre |
+| `energy_focused` | genre 1.0, energy 3.0 | Match the intensity (same as the weight-shift experiment) |
+
+**How the top 5 changes by mode:**
+
+| Profile | balanced | genre_first | mood_first | energy_focused |
+|---|---|---|---|---|
+| High-Energy Pop | Sunrise City, **Gym Hero**, Rooftop Lights | Sunrise City, **Gym Hero**, Rooftop Lights | Sunrise City, **Rooftop Lights**, Gym Hero | Sunrise City, **Rooftop Lights**, Gym Hero |
+| Throwback Explorer | **Night Drive Loop**, Dusty Backroads, Coffee Shop Stories | **Night Drive Loop**, Dusty Backroads, Coffee Shop Stories | **Dusty Backroads**, Night Drive Loop, Coffee Shop Stories | **Night Drive Loop**, Dusty Backroads, Island Breeze |
+
+*(top 3 shown)*
+
+- **`mood_first`** is the only mode that puts Dusty Backroads (country, but nostalgic in both mood and tags) above the synthwave match. That's what "mood over genre" should do.
+- **`genre_first`** widens the gap between genre matches and everything else (Night Drive Loop 7.62 vs. 3.48 for the runner-up), so lists are more predictable but less adventurous.
+- **No mode fixes the Sad but Energetic profile.** Hollow Pines wins in all four, because only one song is tagged "sad". A scoring change can't make up for missing data.
+
+**Design:** each mode is a `ScoringMode` object (a Strategy) holding its own weights. `score_song` asks the mode for each weight instead of using fixed numbers, so adding a mode means adding one line to `SCORING_MODES`. See [ai_interactions.md](ai_interactions.md) for how the design was chosen.
 
 ---
 

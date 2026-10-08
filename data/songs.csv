@@ -1,21 +1,21 @@
-id,title,artist,genre,mood,energy,tempo_bpm,valence,danceability,acousticness
-1,Sunrise City,Neon Echo,pop,happy,0.82,118,0.84,0.79,0.18
-2,Midnight Coding,LoRoom,lofi,chill,0.42,78,0.56,0.62,0.71
-3,Storm Runner,Voltline,rock,intense,0.91,152,0.48,0.66,0.10
-4,Library Rain,Paper Lanterns,lofi,chill,0.35,72,0.60,0.58,0.86
-5,Gym Hero,Max Pulse,pop,intense,0.93,132,0.77,0.88,0.05
-6,Spacewalk Thoughts,Orbit Bloom,ambient,chill,0.28,60,0.65,0.41,0.92
-7,Coffee Shop Stories,Slow Stereo,jazz,relaxed,0.37,90,0.71,0.54,0.89
-8,Night Drive Loop,Neon Echo,synthwave,moody,0.75,110,0.49,0.73,0.22
-9,Focus Flow,LoRoom,lofi,focused,0.40,80,0.59,0.60,0.78
-10,Rooftop Lights,Indigo Parade,indie pop,happy,0.76,124,0.81,0.82,0.35
-11,Concrete Verses,Block Theory,hip hop,confident,0.78,94,0.62,0.85,0.08
-12,Moonlit Sonata Redux,Elena Varga,classical,melancholic,0.18,66,0.22,0.20,0.97
-13,Dusty Backroads,Cedar & Pine,country,nostalgic,0.55,104,0.68,0.61,0.64
-14,Velvet Hours,Amara Lane,r&b,romantic,0.50,86,0.66,0.74,0.30
-15,Iron Tempest,Graveforge,metal,angry,0.97,176,0.24,0.42,0.03
-16,Island Breeze,Kaya Roots,reggae,uplifting,0.60,76,0.88,0.80,0.40
-17,Pulse Reactor,Kilowatt,edm,euphoric,0.95,128,0.74,0.91,0.02
-18,Hollow Pines,Wren Hollow,folk,sad,0.26,84,0.18,0.38,0.93
-19,Fuego Lento,Los Faroles,latin,playful,0.72,100,0.90,0.89,0.25
-20,Three AM Blues,Delta Slim,blues,lonely,0.33,70,0.28,0.45,0.76
+id,title,artist,genre,mood,energy,tempo_bpm,valence,danceability,acousticness,popularity,release_decade,mood_tags,instrumentalness,language
+1,Sunrise City,Neon Echo,pop,happy,0.82,118,0.84,0.79,0.18,82,2020,uplifting|sunny|carefree,0.02,english
+2,Midnight Coding,LoRoom,lofi,chill,0.42,78,0.56,0.62,0.71,61,2020,calm|focused|nocturnal,0.88,none
+3,Storm Runner,Voltline,rock,intense,0.91,152,0.48,0.66,0.10,70,2000,aggressive|driving|rebellious,0.1,english
+4,Library Rain,Paper Lanterns,lofi,chill,0.35,72,0.60,0.58,0.86,55,2010,calm|rainy|cozy,0.92,none
+5,Gym Hero,Max Pulse,pop,intense,0.93,132,0.77,0.88,0.05,88,2020,motivational|aggressive|confident,0.03,english
+6,Spacewalk Thoughts,Orbit Bloom,ambient,chill,0.28,60,0.65,0.41,0.92,38,2010,dreamy|weightless|calm,0.95,none
+7,Coffee Shop Stories,Slow Stereo,jazz,relaxed,0.37,90,0.71,0.54,0.89,47,1990,warm|cozy|nostalgic,0.4,english
+8,Night Drive Loop,Neon Echo,synthwave,moody,0.75,110,0.49,0.73,0.22,66,1980,nostalgic|nocturnal|dreamy,0.7,none
+9,Focus Flow,LoRoom,lofi,focused,0.40,80,0.59,0.60,0.78,58,2020,focused|calm|steady,0.9,none
+10,Rooftop Lights,Indigo Parade,indie pop,happy,0.76,124,0.81,0.82,0.35,72,2010,uplifting|carefree|summery,0.05,english
+11,Concrete Verses,Block Theory,hip hop,confident,0.78,94,0.62,0.85,0.08,79,2010,confident|gritty|driving,0.0,english
+12,Moonlit Sonata Redux,Elena Varga,classical,melancholic,0.18,66,0.22,0.20,0.97,34,2000,melancholic|reflective|delicate,0.97,none
+13,Dusty Backroads,Cedar & Pine,country,nostalgic,0.55,104,0.68,0.61,0.64,52,1990,nostalgic|warm|homesick,0.08,english
+14,Velvet Hours,Amara Lane,r&b,romantic,0.50,86,0.66,0.74,0.30,68,2000,romantic|sensual|warm,0.04,english
+15,Iron Tempest,Graveforge,metal,angry,0.97,176,0.24,0.42,0.03,45,1980,aggressive|rebellious|dark,0.15,english
+16,Island Breeze,Kaya Roots,reggae,uplifting,0.60,76,0.88,0.80,0.40,57,1970,uplifting|sunny|laid-back,0.1,english
+17,Pulse Reactor,Kilowatt,edm,euphoric,0.95,128,0.74,0.91,0.02,84,2020,euphoric|motivational|driving,0.8,none
+18,Hollow Pines,Wren Hollow,folk,sad,0.26,84,0.18,0.38,0.93,41,2010,sad|reflective|lonely,0.05,english
+19,Fuego Lento,Los Faroles,latin,playful,0.72,100,0.90,0.89,0.25,76,2020,playful|romantic|summery,0.02,spanish
+20,Three AM Blues,Delta Slim,blues,lonely,0.33,70,0.28,0.45,0.76,29,1960,lonely|nocturnal|reflective,0.2,english

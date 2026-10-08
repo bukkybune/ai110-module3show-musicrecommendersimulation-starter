@@ -35,6 +35,10 @@ TuneScout gives every song points, then shows the songs with the most points.
 - **Acoustic sound (optional):** up to +1 point. If you like acoustic music, more acoustic songs earn more. If you don't, less acoustic songs earn more.
 - **Positivity, or "valence" (optional):** up to +1 point, for being close to how upbeat you want the music to feel.
 
+**Extra, optional preferences:** a user can also ask for a decade, a few detailed mood tags, a popularity level, instrumental music, or a language. Each earns a smaller bonus (up to 0.5–1 point), and only when the user asks for it.
+
+**Scoring modes:** the point values above are the default "balanced" mode. Three other modes change them: "genre first" doubles the genre reward, "mood first" makes mood and mood tags count most, and "energy focused" makes energy count most.
+
 **Picking the winners:** all the songs are sorted from most to fewest points. If two songs tie, the one with closer energy wins. The top 5 are shown, each with a list of the reasons it earned its points.
 
 **Changes from the starter code:** the starter returned no recommendations. I added:
@@ -57,6 +61,7 @@ I also fixed an import so `python -m src.main` works.
 - genre and mood
 - energy, valence (positivity), danceability, and acousticness, each on a 0–1 scale
 - tempo in beats per minute
+- popularity (0–100), release decade, three detailed mood tags (like "nostalgic" or "aggressive"), instrumentalness (0–1), and language
 
 **What's covered:**
 - 17 genres, including pop, lofi, rock, jazz, hip hop, classical, metal, folk, latin, and blues

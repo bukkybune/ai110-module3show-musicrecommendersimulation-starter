@@ -9,7 +9,9 @@ You will implement the functions in recommender.py:
 - recommend_songs
 """
 
-from src.recommender import load_songs, recommend_songs
+import argparse
+
+from src.recommender import DEFAULT_MODE, SCORING_MODES, load_songs, recommend_songs
 
 
 PROFILES = {
@@ -23,6 +25,12 @@ PROFILES = {
     "Acoustic Metalhead": {"genre": "metal", "mood": "angry", "energy": 0.95, "likes_acoustic": True},
     "Capitalized Pop": {"genre": "Pop", "mood": "Happy", "energy": 0.8},
     "Out-of-Range Energy": {"genre": "edm", "mood": "euphoric", "energy": 1.5},
+
+    # Uses the advanced features (decade, mood tags, popularity, instrumentalness)
+    "Throwback Explorer": {
+        "genre": "synthwave", "mood": "nostalgic", "energy": 0.6, "decade": 1980,
+        "mood_tags": ["nostalgic", "dreamy"], "popularity": 50, "likes_instrumental": True,
+    },
 }
 
 
@@ -40,10 +48,17 @@ def print_recommendations(name: str, user_prefs: dict, recommendations: list) ->
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Music Recommender Simulation")
+    parser.add_argument("--mode", choices=SCORING_MODES, default=DEFAULT_MODE,
+                        help="scoring strategy to rank songs with (default: %(default)s)")
+    args = parser.parse_args()
+
     songs = load_songs("data/songs.csv")
+    mode = SCORING_MODES[args.mode]
+    print(f"Scoring mode: {mode.name} ({mode.description})")
 
     for name, user_prefs in PROFILES.items():
-        recommendations = recommend_songs(user_prefs, songs, k=5)
+        recommendations = recommend_songs(user_prefs, songs, k=5, mode=mode)
         print_recommendations(name, user_prefs, recommendations)
 
 
