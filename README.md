@@ -11,7 +11,7 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+My version, **TuneScout 1.0**, is a content-based recommender that suggests the top 5 songs from a 20-song catalog. Each song gets points for matching the listener's favourite genre and mood, and for being close to their target energy level (plus optional acoustic and positivity preferences). The songs are then ranked, and every recommendation lists the reasons behind its score. I stress-tested it with 7 user profiles, including 4 designed to trick it, and ran a weight-change experiment. What it gets right and wrong is documented below and in the [model card](model_card.md).
 
 ---
 
@@ -60,7 +60,7 @@ Terms for preferences the user didn't give are skipped. The maximum score is 7.5
 **3. Rank the list (the ranking rule):**
 1. Sort all songs by score, highest first.
 2. Break ties by closer energy, then by lower `id`, so results are always the same.
-3. Optionally allow at most one song per artist, for variety.
+3. *(Not implemented yet)* Limit each artist to one song, for variety. See Future Work in the model card.
 4. Return the top `k` songs, each with its score and explanation.
 
 ```
@@ -116,13 +116,13 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Sample Recommendation Output
 
-Output of `python -m src.main` for the default profile (`genre=pop, mood=happy, energy=0.8`):
+Output of `python -m src.main` for the default profile (`genre=pop, mood=happy, energy=0.8`). The full run, with all 7 profiles, is under [Experiments You Tried](#experiments-you-tried).
 
 ```
 Loading songs from data/songs.csv...
 Loaded songs: 20
 
-Top 5 recommendations for: genre=pop, mood=happy, energy=0.8
+High-Energy Pop: genre=pop, mood=happy, energy=0.8
 ============================================================
 1. Sunrise City by Neon Echo  [pop / happy]
    Score: 4.97
@@ -158,25 +158,293 @@ Top 5 recommendations for: genre=pop, mood=happy, energy=0.8
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+### Stress test: 7 user profiles
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+`src/main.py` runs every profile in `PROFILES` against all 20 songs. Three are normal listeners and four are adversarial, designed to try to trick the scoring logic.
+
+| Profile | Preferences | What it tests |
+|---|---|---|
+| High-Energy Pop | pop, happy, energy 0.8 | The default, "easy" case |
+| Chill Lofi | lofi, chill, energy 0.4, likes acoustic | Low energy; the genre with the most songs (3) |
+| Deep Intense Rock | rock, intense, energy 0.9, non-acoustic | High energy; a genre with only 1 song |
+| Sad but Energetic | folk, sad, energy 0.9 | Conflict: the only sad song is very low energy |
+| Acoustic Metalhead | metal, angry, energy 0.95, likes acoustic | Conflict: metal songs are never acoustic |
+| Capitalized Pop | Pop, Happy, energy 0.8 | Same as the default but with capital letters |
+| Out-of-Range Energy | edm, euphoric, energy 1.5 | An energy target outside the 0–1 scale |
+
+Full output of `python -m src.main`:
+
+```
+Loading songs from data/songs.csv...
+Loaded songs: 20
+
+High-Energy Pop: genre=pop, mood=happy, energy=0.8
+============================================================
+1. Sunrise City by Neon Echo  [pop / happy]
+   Score: 4.97
+   Why:
+     - genre match: pop (+2.00)
+     - mood match: happy (+1.50)
+     - energy 0.82 vs target 0.80 (+1.47)
+
+2. Gym Hero by Max Pulse  [pop / intense]
+   Score: 3.30
+   Why:
+     - genre match: pop (+2.00)
+     - energy 0.93 vs target 0.80 (+1.30)
+
+3. Rooftop Lights by Indigo Parade  [indie pop / happy]
+   Score: 2.94
+   Why:
+     - mood match: happy (+1.50)
+     - energy 0.76 vs target 0.80 (+1.44)
+
+4. Concrete Verses by Block Theory  [hip hop / confident]
+   Score: 1.47
+   Why:
+     - energy 0.78 vs target 0.80 (+1.47)
+
+5. Night Drive Loop by Neon Echo  [synthwave / moody]
+   Score: 1.42
+   Why:
+     - energy 0.75 vs target 0.80 (+1.42)
+
+
+Chill Lofi: genre=lofi, mood=chill, energy=0.4, likes_acoustic=True
+============================================================
+1. Library Rain by Paper Lanterns  [lofi / chill]
+   Score: 5.79
+   Why:
+     - genre match: lofi (+2.00)
+     - mood match: chill (+1.50)
+     - energy 0.35 vs target 0.40 (+1.42)
+     - acoustic fit, acousticness 0.86 (+0.86)
+
+2. Midnight Coding by LoRoom  [lofi / chill]
+   Score: 5.68
+   Why:
+     - genre match: lofi (+2.00)
+     - mood match: chill (+1.50)
+     - energy 0.42 vs target 0.40 (+1.47)
+     - acoustic fit, acousticness 0.71 (+0.71)
+
+3. Focus Flow by LoRoom  [lofi / focused]
+   Score: 4.28
+   Why:
+     - genre match: lofi (+2.00)
+     - energy 0.40 vs target 0.40 (+1.50)
+     - acoustic fit, acousticness 0.78 (+0.78)
+
+4. Spacewalk Thoughts by Orbit Bloom  [ambient / chill]
+   Score: 3.74
+   Why:
+     - mood match: chill (+1.50)
+     - energy 0.28 vs target 0.40 (+1.32)
+     - acoustic fit, acousticness 0.92 (+0.92)
+
+5. Coffee Shop Stories by Slow Stereo  [jazz / relaxed]
+   Score: 2.35
+   Why:
+     - energy 0.37 vs target 0.40 (+1.46)
+     - acoustic fit, acousticness 0.89 (+0.89)
+
+
+Deep Intense Rock: genre=rock, mood=intense, energy=0.9, likes_acoustic=False
+============================================================
+1. Storm Runner by Voltline  [rock / intense]
+   Score: 5.88
+   Why:
+     - genre match: rock (+2.00)
+     - mood match: intense (+1.50)
+     - energy 0.91 vs target 0.90 (+1.48)
+     - non-acoustic fit, acousticness 0.10 (+0.90)
+
+2. Gym Hero by Max Pulse  [pop / intense]
+   Score: 3.91
+   Why:
+     - mood match: intense (+1.50)
+     - energy 0.93 vs target 0.90 (+1.46)
+     - non-acoustic fit, acousticness 0.05 (+0.95)
+
+3. Pulse Reactor by Kilowatt  [edm / euphoric]
+   Score: 2.41
+   Why:
+     - energy 0.95 vs target 0.90 (+1.43)
+     - non-acoustic fit, acousticness 0.02 (+0.98)
+
+4. Iron Tempest by Graveforge  [metal / angry]
+   Score: 2.37
+   Why:
+     - energy 0.97 vs target 0.90 (+1.40)
+     - non-acoustic fit, acousticness 0.03 (+0.97)
+
+5. Concrete Verses by Block Theory  [hip hop / confident]
+   Score: 2.24
+   Why:
+     - energy 0.78 vs target 0.90 (+1.32)
+     - non-acoustic fit, acousticness 0.08 (+0.92)
+
+
+Sad but Energetic: genre=folk, mood=sad, energy=0.9
+============================================================
+1. Hollow Pines by Wren Hollow  [folk / sad]
+   Score: 4.04
+   Why:
+     - genre match: folk (+2.00)
+     - mood match: sad (+1.50)
+     - energy 0.26 vs target 0.90 (+0.54)
+
+2. Storm Runner by Voltline  [rock / intense]
+   Score: 1.48
+   Why:
+     - energy 0.91 vs target 0.90 (+1.48)
+
+3. Gym Hero by Max Pulse  [pop / intense]
+   Score: 1.46
+   Why:
+     - energy 0.93 vs target 0.90 (+1.46)
+
+4. Pulse Reactor by Kilowatt  [edm / euphoric]
+   Score: 1.43
+   Why:
+     - energy 0.95 vs target 0.90 (+1.43)
+
+5. Iron Tempest by Graveforge  [metal / angry]
+   Score: 1.40
+   Why:
+     - energy 0.97 vs target 0.90 (+1.40)
+
+
+Acoustic Metalhead: genre=metal, mood=angry, energy=0.95, likes_acoustic=True
+============================================================
+1. Iron Tempest by Graveforge  [metal / angry]
+   Score: 5.00
+   Why:
+     - genre match: metal (+2.00)
+     - mood match: angry (+1.50)
+     - energy 0.97 vs target 0.95 (+1.47)
+     - acoustic fit, acousticness 0.03 (+0.03)
+
+2. Rooftop Lights by Indigo Parade  [indie pop / happy]
+   Score: 1.56
+   Why:
+     - energy 0.76 vs target 0.95 (+1.22)
+     - acoustic fit, acousticness 0.35 (+0.35)
+
+3. Storm Runner by Voltline  [rock / intense]
+   Score: 1.54
+   Why:
+     - energy 0.91 vs target 0.95 (+1.44)
+     - acoustic fit, acousticness 0.10 (+0.10)
+
+4. Dusty Backroads by Cedar & Pine  [country / nostalgic]
+   Score: 1.54
+   Why:
+     - energy 0.55 vs target 0.95 (+0.90)
+     - acoustic fit, acousticness 0.64 (+0.64)
+
+5. Gym Hero by Max Pulse  [pop / intense]
+   Score: 1.52
+   Why:
+     - energy 0.93 vs target 0.95 (+1.47)
+     - acoustic fit, acousticness 0.05 (+0.05)
+
+
+Capitalized Pop: genre=Pop, mood=Happy, energy=0.8
+============================================================
+1. Sunrise City by Neon Echo  [pop / happy]
+   Score: 1.47
+   Why:
+     - energy 0.82 vs target 0.80 (+1.47)
+
+2. Concrete Verses by Block Theory  [hip hop / confident]
+   Score: 1.47
+   Why:
+     - energy 0.78 vs target 0.80 (+1.47)
+
+3. Rooftop Lights by Indigo Parade  [indie pop / happy]
+   Score: 1.44
+   Why:
+     - energy 0.76 vs target 0.80 (+1.44)
+
+4. Night Drive Loop by Neon Echo  [synthwave / moody]
+   Score: 1.42
+   Why:
+     - energy 0.75 vs target 0.80 (+1.42)
+
+5. Fuego Lento by Los Faroles  [latin / playful]
+   Score: 1.38
+   Why:
+     - energy 0.72 vs target 0.80 (+1.38)
+
+
+Out-of-Range Energy: genre=edm, mood=euphoric, energy=1.5
+============================================================
+1. Pulse Reactor by Kilowatt  [edm / euphoric]
+   Score: 4.17
+   Why:
+     - genre match: edm (+2.00)
+     - mood match: euphoric (+1.50)
+     - energy 0.95 vs target 1.50 (+0.67)
+
+2. Iron Tempest by Graveforge  [metal / angry]
+   Score: 0.70
+   Why:
+     - energy 0.97 vs target 1.50 (+0.70)
+
+3. Gym Hero by Max Pulse  [pop / intense]
+   Score: 0.65
+   Why:
+     - energy 0.93 vs target 1.50 (+0.65)
+
+4. Storm Runner by Voltline  [rock / intense]
+   Score: 0.61
+   Why:
+     - energy 0.91 vs target 1.50 (+0.61)
+
+5. Sunrise City by Neon Echo  [pop / happy]
+   Score: 0.48
+   Why:
+     - energy 0.82 vs target 1.50 (+0.48)
+```
+
+**What stood out:**
+- **The "Gym Hero effect":** Gym Hero (pop / intense, energy 0.93) appears in the top 5 for 5 of the 7 profiles, including rock, sad folk, and metal fans. Once the one or two genre/mood matches are used up, the rest of the list is decided almost entirely by energy, and Gym Hero is one of only four songs above 0.9.
+- **Sad but Energetic:** Hollow Pines (folk / sad, energy 0.26) still wins, because matching genre and mood (+3.5) outweighs a terrible energy match. Every other pick is high-energy but none is sad. Iron Tempest (valence 0.24), arguably the best "sad and energetic" fit, comes 5th because valence wasn't part of this profile.
+- **Acoustic Metalhead:** the contradiction pulls in odd songs. Rooftop Lights (indie pop / happy) and Dusty Backroads (country) reach the top 4 mostly on acoustic points.
+- **Capitalized Pop:** "Pop" doesn't equal "pop", so genre and mood never match and the list is ranked by energy alone. Sunrise City still comes first, but only because it wins an exact tie with Concrete Verses on the tie-break (lower id).
+- **Out-of-Range Energy:** the top 5 looks reasonable, but 8 low-energy songs get negative scores (down to −0.96). Energy 1.5 is accepted without any error.
+
+### Experiment: weight shift (energy ×2, genre ×½)
+
+I temporarily changed `GENRE_WEIGHT` from 2.0 to 1.0 and `ENERGY_WEIGHT` from 1.5 to 3.0, re-ran all profiles, then reverted. **Math check:** for any energy target between 0 and 1 the energy term stays between 0 and 3, so no score goes negative. The maximum score for a genre + mood + energy profile rises from 5.0 to 5.5, and since every song is scored the same way the ranking is still a fair comparison.
+
+| Profile | Original top 5 (genre 2.0, energy 1.5) | Shifted top 5 (genre 1.0, energy 3.0) |
+|---|---|---|
+| High-Energy Pop | Sunrise City, **Gym Hero**, Rooftop Lights, Concrete Verses, Night Drive Loop | Sunrise City, **Rooftop Lights**, Gym Hero, Concrete Verses, Night Drive Loop |
+| Chill Lofi | Library Rain, Midnight Coding, **Focus Flow**, Spacewalk Thoughts, Coffee Shop Stories | Library Rain, Midnight Coding, **Spacewalk Thoughts**, Focus Flow, Coffee Shop Stories |
+| Deep Intense Rock | Storm Runner, Gym Hero, Pulse Reactor, Iron Tempest, **Concrete Verses** | Storm Runner, Gym Hero, Pulse Reactor, Iron Tempest, **Sunrise City** |
+| Sad but Energetic | Hollow Pines, Storm Runner, Gym Hero, Pulse Reactor, Iron Tempest | *(same order)* Hollow Pines 3.58 vs Storm Runner 2.97 |
+| Acoustic Metalhead | Iron Tempest, **Rooftop Lights**, Storm Runner, **Dusty Backroads**, Gym Hero | Iron Tempest, **Pulse Reactor**, Gym Hero, Storm Runner, **Sunrise City** |
+
+**More accurate or just different? Mostly different, with a mixed result.**
+- *Better:* Happy-pop fans now get the happy indie-pop song before the intense gym song, and chill fans get the chill ambient song before the "focused" lofi one. Matching the vibe beat matching the label.
+- *Worse:* the rock fan now gets Sunrise City (happy pop) at #5, purely for its energy. With energy weighted this heavily, the high-energy bubble gets bigger.
+- *Unchanged:* Hollow Pines still beats every energetic song for the Sad but Energetic profile, because genre + mood together (2.5) still outweigh a perfect energy match. For profiles ranked by energy alone (Capitalized Pop, Out-of-Range), the order stays the same and only the scores double.
+
+I kept the original weights: the shift fixed some mood problems but made the energy bubble worse.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
+- **Tiny, made-up catalog:** 20 songs with hand-written values. Most genres have only one or two songs, so after the first match or two the lists fill up with "closest energy" picks.
+- **High-energy filter bubble:** any high-energy listener gets the same few songs (Gym Hero appeared in 5 of my 7 test profiles), whatever genre or mood they asked for.
+- **Strict matching:** "Pop" doesn't match "pop", and related labels like "chill" and "relaxed" get no partial credit.
+- **No input checks:** an energy target of 1.5 is accepted and gives some songs negative scores.
+- **Shallow understanding of music:** no lyrics, language, or listening history, so the system knows nothing about a song beyond its labels and numbers.
 
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+The model card covers these in more depth, under [Limitations and Bias](model_card.md#6-limitations-and-bias).
 
 ---
 
@@ -186,116 +454,6 @@ Read and complete `model_card.md`:
 
 [**Model Card**](model_card.md)
 
-Write 1 to 2 paragraphs here about what you learned:
+Building this showed me that a recommender turns data into predictions by *scoring* and then *ranking*. Each song is reduced to a few labels and numbers, compared with what the listener asked for, and turned into a single score. The "prediction" is really just "the songs with the highest scores". It surprised me how much the results depend on choices that feel small: changing two weights reshuffled several lists, and how close a song's energy is to the target ended up deciding most of each top 5.
 
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
-
-
----
-
-## 7. `model_card_template.md`
-
-Combines reflection and model card framing from the Module 3 guidance. :contentReference[oaicite:2]{index=2}  
-
-```markdown
-# 🎧 Model Card - Music Recommender Simulation
-
-## 1. Model Name
-
-Give your recommender a name, for example:
-
-> VibeFinder 1.0
-
----
-
-## 2. Intended Use
-
-- What is this system trying to do
-- Who is it for
-
-Example:
-
-> This model suggests 3 to 5 songs from a small catalog based on a user's preferred genre, mood, and energy level. It is for classroom exploration only, not for real users.
-
----
-
-## 3. How It Works (Short Explanation)
-
-Describe your scoring logic in plain language.
-
-- What features of each song does it consider
-- What information about the user does it use
-- How does it turn those into a number
-
-Try to avoid code in this section, treat it like an explanation to a non programmer.
-
----
-
-## 4. Data
-
-Describe your dataset.
-
-- How many songs are in `data/songs.csv`
-- Did you add or remove any songs
-- What kinds of genres or moods are represented
-- Whose taste does this data mostly reflect
-
----
-
-## 5. Strengths
-
-Where does your recommender work well
-
-You can think about:
-- Situations where the top results "felt right"
-- Particular user profiles it served well
-- Simplicity or transparency benefits
-
----
-
-## 6. Limitations and Bias
-
-Where does your recommender struggle
-
-Some prompts:
-- Does it ignore some genres or moods
-- Does it treat all users as if they have the same taste shape
-- Is it biased toward high energy or one genre by default
-- How could this be unfair if used in a real product
-
----
-
-## 7. Evaluation
-
-How did you check your system
-
-Examples:
-- You tried multiple user profiles and wrote down whether the results matched your expectations
-- You compared your simulation to what a real app like Spotify or YouTube tends to recommend
-- You wrote tests for your scoring logic
-
-You do not need a numeric metric, but if you used one, explain what it measures.
-
----
-
-## 8. Future Work
-
-If you had more time, how would you improve this recommender
-
-Examples:
-
-- Add support for multiple users and "group vibe" recommendations
-- Balance diversity of songs instead of always picking the closest match
-- Use more features, like tempo ranges or lyric themes
-
----
-
-## 9. Personal Reflection
-
-A few sentences about what you learned:
-
-- What surprised you about how your system behaved
-- How did building this change how you think about real music recommenders
-- Where do you think human judgment still matters, even if the model seems "smart"
-
+Bias shows up in places you wouldn't expect. Nothing in my code favours any particular song, yet Gym Hero kept appearing for rock, folk, and metal fans, simply because the catalog has very few songs per genre and only four very energetic ones. Users whose taste is under-represented in the data, like mid-energy listeners, or anyone who types "Pop" instead of "pop", quietly get worse recommendations. In a real app, the same thing could mean some artists and listeners are consistently overlooked without anyone deciding that on purpose.

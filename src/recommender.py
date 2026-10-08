@@ -29,6 +29,7 @@ class UserProfile:
     favorite_mood: str
     target_energy: float
     likes_acoustic: bool
+    target_valence: Optional[float] = None
 
 class Recommender:
     """
@@ -56,6 +57,7 @@ def _profile_to_prefs(user: UserProfile) -> Dict:
         "mood": user.favorite_mood,
         "energy": user.target_energy,
         "likes_acoustic": user.likes_acoustic,
+        "valence": user.target_valence,
     }
 
 def load_songs(csv_path: str) -> List[Dict]:
